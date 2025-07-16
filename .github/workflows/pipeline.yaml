@@ -1,0 +1,68 @@
+name: GitHub Actions CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: Package
+        run: |
+          ls -ln
+          set -e
+          zip -qr ${{ runner.temp }}/${APP_NAME}.zip gifs img *.firebase.json .firebaserc
+
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}
+          path: ${{ runner.temp }}/${{ env.APP_NAME }}.zip
+          retention-days: 1
+
+  deploy-on-hosting:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [build]
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_PROJECT_ID: coachai-ce493
+      FIREBASE_SITE: file-493-da12d
+    steps:
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: Install Firebase Tools
+        run: npm install -g firebase-tools
+
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}
+          path: ${{ runner.temp }}
+
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: Unzip artifact
+        run: |
+          unzip ${{ runner.temp }}/${{ env.APP_NAME }}.zip -d ${{ runner.temp }}
+
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: "Select firebase project"
+        run: npx firebase use ${{ env.FIREBASE_PROJECT_ID }}
+
+      - if: ${{ github.ref == 'refs/heads/main' }}
+        name: "Deploy on Firebase"
+        run: npx firebase deploy --only hosting:${{ env.FIREBASE_SITE }}
