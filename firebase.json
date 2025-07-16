@@ -2,8 +2,8 @@
   "hosting": [
     {
       "site": "file-493-da12d",
-      "public": "out",
-      "ignore": ["*.firebase.json", "**/.*", "**/node_modules/**"],
+      "public": ".",
+      "ignore": ["*.firebase.json", "**/.*", "**/node_modules/**", "**/.git/**", "**/.github/**"],
       "rewrites": []
     }
   ]
